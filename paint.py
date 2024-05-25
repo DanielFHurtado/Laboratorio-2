@@ -1,171 +1,122 @@
-from tkinter import Canvas, Tk, Frame, Button, messagebox, filedialog, Scale, HORIZONTAL, ALL
-import PIL.ImageGrab as ImageGrab
+import tkinter as tk
+from tkinter import Canvas, Button, Scale, HORIZONTAL, filedialog, messagebox
+import pyscreenshot as ImageGrab  
 
-linea_x = 0
-linea_y = 0
-color = 'black'
+class Paint:
+    def __init__(self):
+        self.ventana = tk.Tk()
+        self.ventana.title("Aplicación de Dibujo")
+        self.ventana.resizable(0,0)
 
-def linea_xy(event):
-    global linea_x
-    global linea_y
+        frame = tk.Frame(self.ventana, bg='Black', height=200)
+        frame.grid(column=0, row=0, sticky='ew')
 
-    linea_x = event.x
-    linea_y = event.y
+        frame.columnconfigure(0, minsize=200, weight=1)
 
-def linea(event):
-    global linea_x, linea_y
-    canvas.create_line((linea_x, linea_y, event.x, event.y), fill= color, width = espesor_pincel.get())
-    linea_x = event.x
-    linea_y = event.y
+        self.canvas = Canvas(self.ventana, height=660, bg='white')
+        self.canvas.grid(row=1, column=0, sticky='nsew')
 
-def mostrar_color(nuevo_color):
-    global color
-    color = nuevo_color
+        self.canvas.rowconfigure(0, weight=1)
+        self.canvas.columnconfigure(0, weight=1, minsize=100)
 
-def borrar():
-    global color
-    color = 'white'
+        self.canvas.bind('<Button-1>', self.linea_xy)
+        self.canvas.bind('<B1-Motion>', self.linea)
 
-def limpiar():
-    canvas.delete(ALL)
+        canvas_colores = Canvas(frame, bg='black', width=5, height=40)
+        canvas_colores.grid(column=0, row=0, sticky='ew', padx=1, pady=1)
 
-def salir():
-    ventana.destroy()
-    ventana.quit()
+        self.colores = [
+            ('red', 'Rojo'), ('green', 'Verde'), ('yellow', 'Amarillo'), ('magenta', 'Magenta'),
+            ('blue', 'Azul'), ('orange', 'Naranja'), ('salmon', 'Salmon'), ('sky blue', 'Cielo'),
+            ('gold', 'Dorado'), ('hot pink', 'Rosa Fuerte'), ('bisque', 'Bisque'), ('brown4', 'Café'),
+            ('gray', 'Gris'), ('purple', 'Morado'), ('green2', 'Verde Oscuro'), ('dodger blue', 'Azul Oscuro'),
+            ('black', 'Negro'), ('white', 'Blanco')
+        ]
 
-def guardar_dibujo():
+        for idx, (color, _) in enumerate(self.colores):
+            id = canvas_colores.create_rectangle((10 + idx * 30, 10, 30 + idx * 30, 30), fill=color)
+            canvas_colores.tag_bind(id, '<Button-1>', lambda e, col=color: self.mostrar_color(col))
 
-    try:
-        filename = filedialog.asksaveasfilename(defaultextension='.png')
+        self.espesor_pincel = Scale(frame, orient=HORIZONTAL, from_=0, to=50, length=200, relief='groove', bg='gold',
+                                    width=17, sliderlength=20, highlightbackground='white', activebackground='red')
+        self.espesor_pincel.set(1)
+        self.espesor_pincel.grid(column=1, row=0, sticky='ew', pady=1, padx=2)
 
-        x = ventana.winfo_rootx() + canvas.winfo_x()
-        y = (ventana.winfo_rooty() + canvas.winfo_y())
+        btnGuardar = Button(frame, text='Guardar', bg='green2', command=self.guardar_dibujo,
+                            width=10, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
+        btnGuardar.grid(column=2, row=0, sticky='ew', pady=1, padx=4)
 
-        x1 = x + canvas.winfo_width()
-        y1 = y + canvas.winfo_height()
+        btnBorrar = Button(frame, text='Borrar', bg='cyan2', command=self.borrar,
+                           width=10, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
+        btnBorrar.grid(column=3, row=0, sticky='ew', pady=1, padx=4)
 
-        ImageGrab.grab().crop((x, y, x1, y1)).save(filename)
-        messagebox.showinfo('Guardar Dibujo','Imagen Guardada en: ' + str(filename) )
-    except:
-        messagebox.showerror('Guardiar Dibujo', 'Imagen no guardada\n Error')
+        btnLimpiar = Button(frame, text='Limpiar', bg='Violet Red', command=self.limpiar,
+                            width=10, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
+        btnLimpiar.grid(column=4, row=0, sticky='ew', pady=1, padx=4)
 
-ventana = Tk()
-ventana.state('zoomed')
-ventana.config(bg='black')
-ventana.title('Dibujar')
-ventana.iconbitmap('Icono_dibujo.ico')
+        btnSalir = Button(frame, text='Salir', bg='firebrick1', command=self.salir,
+                          width=10, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
+        btnSalir.grid(column=5, row=0, sticky='ew', pady=1, padx=4)
 
-ventana.rowconfigure(0, weight=1)
-ventana.columnconfigure(0, weight=1)
+       
+        self.modo_dibujo = "linea"
+        btnAlternar = Button(frame, text='Alternar a Círculo', bg='lightblue', command=self.alternar_modo,
+                             width=15, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
+        btnAlternar.grid(column=6, row=0, sticky='ew', pady=1, padx=4)
 
-frame = Frame(ventana, bg='Black', height=200)
-frame.grid(column= 0, row= 0, sticky='ew')
+        self.linea_x = 0
+        self.linea_y = 0
+        self.color = 'black'
+        self.start_x = None
+        self.start_y = None
+        self.circle = None
 
-frame.columnconfigure(0, minsize=200, weight=1)
+        self.ventana.mainloop()
 
-canvas = Canvas(ventana, height=660 , bg= 'white')
-canvas.grid(row=1, column=0, sticky='nsew')
+    def linea_xy(self, event):
+        if self.modo_dibujo == "linea":
+            self.linea_x = event.x
+            self.linea_y = event.y
+        elif self.modo_dibujo == "circulo":
+            self.start_x = event.x
+            self.start_y = event.y
+            self.circle = self.canvas.create_oval(self.start_x, self.start_y, self.start_x, self.start_y, outline=self.color)
 
-canvas.rowconfigure(0, weight=1)
-canvas.columnconfigure(0, weight=1, minsize=100)
+    def linea(self, event):
+        if self.modo_dibujo == "linea":
+            self.canvas.create_line((self.linea_x, self.linea_y, event.x, event.y), fill=self.color, width=self.espesor_pincel.get())
+            self.linea_x = event.x
+            self.linea_y = event.y
+        elif self.modo_dibujo == "circulo" and self.circle is not None:
+            self.canvas.coords(self.circle, self.start_x, self.start_y, event.x, event.y)
 
-canvas.bind('<Button-1>', linea_xy)
-canvas.bind('<B1-Motion>', linea)
+    def alternar_modo(self):
+        if self.modo_dibujo == "linea":
+            self.modo_dibujo = "circulo"
+        else:
+            self.modo_dibujo = "linea"
 
-canvas_colores = Canvas(frame, bg='black', width=5, height=40)
-canvas_colores.grid(column= 0, row= 0, sticky='ew', padx=1, pady=1)
+    def mostrar_color(self, nuevo_color):
+        self.color = nuevo_color
 
-#1 Rojo
-id = canvas_colores.create_rectangle((10, 10, 30, 30), fill='red')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('red'))
+    def borrar(self):
+        self.color = 'white'
 
-#2 Verde
-id = canvas_colores.create_rectangle((40, 10, 60, 30), fill='green')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('green'))
+    def limpiar(self):
+        self.canvas.delete("all")
 
-#3 Amarillo
-id = canvas_colores.create_rectangle((70, 10, 90, 30), fill='yellow')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('yellow'))
+    def salir(self):
+        self.ventana.destroy()
 
-#4 Magenta
-id = canvas_colores.create_rectangle((100, 10, 120, 30), fill='magenta')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('magenta'))
-
-#5 Azul
-id = canvas_colores.create_rectangle((130, 10, 150, 30), fill='blue')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('blue'))
-
-#6 Naranja
-id = canvas_colores.create_rectangle((160, 10, 180, 30), fill='orange')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('orange'))
-
-#7 Salmon
-id = canvas_colores.create_rectangle((190, 10, 210, 30), fill='salmon')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('salmon'))
-
-#8 Cielo
-id = canvas_colores.create_rectangle((220, 10, 240, 30), fill='sky blue')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('sky blue'))
-
-#9 Dorado
-id = canvas_colores.create_rectangle((250, 10, 270, 30), fill='gold')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('gold'))
-
-#10 Rosa Fuerte
-id = canvas_colores.create_rectangle((280, 10, 300, 30), fill='hot pink')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('hot pink'))
-
-#11 Bisque
-id = canvas_colores.create_rectangle((310, 10, 330, 30), fill='bisque')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('bisque'))
-
-#12 Café
-id = canvas_colores.create_rectangle((340, 10, 360, 30), fill='brown4')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('brown4'))
-
-#13 Gris
-id = canvas_colores.create_rectangle((370, 10, 390, 30), fill='gray')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('gray'))
-
-#14 Morado
-id = canvas_colores.create_rectangle((400, 10, 420, 30), fill='purple')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('purple'))
-
-#15 Verde Oscuro
-id = canvas_colores.create_rectangle((430, 10, 450, 30), fill='green2')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('green2'))
-
-#16 Azul Oscuro
-id = canvas_colores.create_rectangle((460, 10, 480, 30), fill='dodger blue')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('dodger blue'))
-
-#17 Negro
-id = canvas_colores.create_rectangle((490, 10, 510, 30), fill='black')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('black'))
-
-#18 Blanco
-id = canvas_colores.create_rectangle((520, 10, 540, 30), fill='white')
-canvas_colores.tag_bind(id, '<Button-1>', lambda x: mostrar_color('white'))
-
-espesor_pincel = Scale(frame, orient= HORIZONTAL, from_= 0, to= 50, length=200, relief= 'groove', bg= 'gold', 
-                       width=17, sliderlength=20, highlightbackground='white', activebackground='red')
-espesor_pincel.set(1)
-espesor_pincel.grid(column=1, row=0, sticky='ew', pady=1, padx=2)
-
-btnGuardar = Button(frame, text= 'Guardar', bg='green2', command= guardar_dibujo, 
-                       width=10, height=2, activebackground='white', font=('comic sens MS', 10, 'bold'))
-btnGuardar.grid(column=2, row=0, sticky='ew', pady=1, padx=4)
-
-btnBorrar = Button(frame, text= 'Borrar', bg='cyan2', command= borrar, 
-                       width=10, height=2, activebackground='white', font=('comic sens MS', 10, 'bold'))
-btnBorrar.grid(column=3, row=0, sticky='ew', pady=1, padx=4)
-
-btnLimpiar = Button(frame, text= 'Limpiar', bg='Violet Red', command= limpiar, 
-                       width=10, height=2, activebackground='white', font=('comic sens MS', 10, 'bold'))
-btnLimpiar.grid(column=4, row=0, sticky='ew', pady=1, padx=4)
-
-btnSalir = Button(frame, text= 'Salir', bg='firebrick1', command= salir, 
-                       width=10, height=2, activebackground='white', font=('comic sens MS', 10, 'bold'))
-btnSalir.grid(column=5, row=0, sticky='ew', pady=1, padx=4)
-
-ventana.mainloop()
+    def guardar_dibujo(self):
+        try:
+            filename = filedialog.asksaveasfilename(defaultextension='.png')
+            if filename:
+                x = self.ventana.winfo_rootx() + self.canvas.winfo_x()
+                y = self.ventana.winfo_rooty() + self.canvas.winfo_y()
+                x1 = x + self.canvas.winfo_width()
+                y1 = y + self.canvas.winfo_height()
+                ImageGrab.grab().crop((x, y, x1, y1)).save(filename)
+                messagebox.showinfo('Guardar Dibujo', 'Imagen Guardada en: ' + str(filename))
+        except Exception as e:
+            messagebox.showerror('Guardar Dibujo', 'Imagen no guardada\nError: ' + str(e))
