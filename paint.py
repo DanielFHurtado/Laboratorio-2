@@ -1,15 +1,22 @@
 import tkinter as tk
-from tkinter import Canvas, Button, Scale, HORIZONTAL, filedialog, messagebox
+from tkinter import Canvas, Button, Scale, HORIZONTAL, filedialog, messagebox, Entry
 import pyscreenshot as ImageGrab  
 
 class Paint:
     def __init__(self):
         self.ventana = tk.Tk()
         self.ventana.title("Aplicación de Dibujo")
-        self.ventana.resizable(0,0)
+        self.ventana.resizable(1,1)
 
         frame = tk.Frame(self.ventana, bg='Black', height=200)
-        frame.grid(column=0, row=0, sticky='ew')
+        frame.grid(column=0, row=0, sticky='nsew')
+        
+        frame.columnconfigure(0, weight=1)
+        for i in range(1, 7):
+            frame.columnconfigure(i, weight=0)
+
+        self.ventana.rowconfigure(1, weight=1)
+        self.ventana.columnconfigure(0, weight=1)
 
         frame.columnconfigure(0, minsize=200, weight=1)
 
@@ -58,11 +65,21 @@ class Paint:
                           width=10, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
         btnSalir.grid(column=5, row=0, sticky='ew', pady=1, padx=4)
 
-       
+
         self.modo_dibujo = "linea"
-        btnAlternar = Button(frame, text='Alternar a Círculo', bg='lightblue', command=self.alternar_modo,
+        btnCirculo = Button(frame, text='Círculo', bg='lightblue', command=self.modo_circulo,
                              width=15, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
-        btnAlternar.grid(column=6, row=0, sticky='ew', pady=1, padx=4)
+        btnCirculo.grid(column=6, row=0, sticky='ew', pady=1, padx=4)
+
+
+        btnLinea = Button(frame, text='Línea', bg='lightblue', command=self.modo_linea,
+                          width=10, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
+        btnLinea.grid(column=7, row=0, sticky='ew', pady=1, padx=4)
+
+
+        btnCuadrado = Button(frame, text='Cuadrado', bg='lightblue', command=self.modo_cuadrado,
+                             width=10, height=2, activebackground='white', font=('comic sans MS', 10, 'bold'))
+        btnCuadrado.grid(column=8, row=0, sticky='ew', pady=1, padx=4)
 
         self.linea_x = 0
         self.linea_y = 0
@@ -73,6 +90,13 @@ class Paint:
 
         self.ventana.mainloop()
 
+    def modo_linea(self):
+        self.modo_dibujo = "linea"
+
+    def modo_cuadrado(self):
+        self.modo_dibujo = "cuadrado"
+
+    
     def linea_xy(self, event):
         if self.modo_dibujo == "linea":
             self.linea_x = event.x
@@ -81,6 +105,13 @@ class Paint:
             self.start_x = event.x
             self.start_y = event.y
             self.circle = self.canvas.create_oval(self.start_x, self.start_y, self.start_x, self.start_y, outline=self.color)
+        
+        self.start_x = event.x
+        self.start_y = event.y
+        if self.modo_dibujo == "linea":
+            self.linea = self.canvas.create_line(self.start_x, self.start_y, self.start_x, self.start_y, fill=self.color)
+        elif self.modo_dibujo == "cuadrado":
+            self.cuadrado = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline=self.color)
 
     def linea(self, event):
         if self.modo_dibujo == "linea":
@@ -90,11 +121,18 @@ class Paint:
         elif self.modo_dibujo == "circulo" and self.circle is not None:
             self.canvas.coords(self.circle, self.start_x, self.start_y, event.x, event.y)
 
-    def alternar_modo(self):
+        if self.modo_dibujo == "linea":
+            self.canvas.coords(self.linea, self.start_x, self.start_y, event.x, event.y)
+        elif self.modo_dibujo == "cuadrado":
+            self.canvas.coords(self.cuadrado, self.start_x, self.start_y, event.x, event.y)
+
+
+    def modo_circulo(self):
         if self.modo_dibujo == "linea":
             self.modo_dibujo = "circulo"
         else:
             self.modo_dibujo = "linea"
+
 
     def mostrar_color(self, nuevo_color):
         self.color = nuevo_color
